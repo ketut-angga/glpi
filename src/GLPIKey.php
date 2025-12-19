@@ -74,26 +74,26 @@ class GLPIKey
      * @var array
      */
     protected $configs = [
-        'core'   => [
+        'core' => [
             'glpinetwork_registration_key',
             'proxy_passwd',
             'smtp_passwd',
             'smtp_oauth_client_secret',
             'smtp_oauth_refresh_token',
-        ]
+        ],
     ];
 
     public function __construct(string $config_dir = GLPI_CONFIG_DIR)
     {
-        $this->keyfile = $config_dir . '/glpicrypt.key';
-        $this->legacykeyfile = $config_dir . '/glpi.key';
+        $this->keyfile = $config_dir.'/glpicrypt.key';
+        $this->legacykeyfile = $config_dir.'/glpi.key';
     }
 
     /**
      * Returns expected key path for given GLPI version.
      * Will return null for GLPI versions that was not yet handling a custom security key.
      *
-     * @param string $glpi_version
+     * @param  string  $glpi_version
      *
      * @return string|null
      */
@@ -101,10 +101,12 @@ class GLPIKey
     {
         if (version_compare($glpi_version, '9.4.6', '<')) {
             return null;
-        } else if (version_compare($glpi_version, '9.5.x', '<')) {
-            return $this->legacykeyfile;
         } else {
-            return $this->keyfile;
+            if (version_compare($glpi_version, '9.5.x', '<')) {
+                return $this->legacykeyfile;
+            } else {
+                return $this->keyfile;
+            }
         }
     }
 
@@ -127,16 +129,20 @@ class GLPIKey
     {
         if (!file_exists($this->keyfile)) {
             trigger_error('You must create a security key, see security:change_key command.', E_USER_WARNING);
+
             return null;
         }
         if (!is_readable($this->keyfile) || ($key = file_get_contents($this->keyfile)) === false) {
             trigger_error('Unable to get security key file contents.', E_USER_WARNING);
+
             return null;
         }
         if (strlen($key) !== SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_KEYBYTES) {
             trigger_error('Invalid security key file contents.', E_USER_WARNING);
+
             return null;
         }
+
         return $key;
     }
 
@@ -151,11 +157,13 @@ class GLPIKey
         if (!file_exists($this->legacykeyfile)) {
             return GLPIKEY;
         }
-       //load key from existing config file
+        //load key from existing config file
         if (!is_readable($this->legacykeyfile) || ($key = file_get_contents($this->legacykeyfile)) === false) {
             trigger_error('Unable to get security legacy key file contents.', E_USER_WARNING);
+
             return null;
         }
+
         return $key;
     }
 
@@ -170,16 +178,17 @@ class GLPIKey
         /** @var \DBmysql $DB */
         global $DB;
 
-       // Check ability to create/update key file.
+        // Check ability to create/update key file.
         if (
             (file_exists($this->keyfile) && !is_writable($this->keyfile))
             || (!file_exists($this->keyfile) && !is_writable(dirname($this->keyfile)))
         ) {
             trigger_error(sprintf('Security key file path (%s) is not writable.', $this->keyfile), E_USER_WARNING);
+
             return false;
         }
 
-       // Fetch old key before generating the new one (but only if DB exists and there is something to migrate)
+        // Fetch old key before generating the new one (but only if DB exists and there is something to migrate)
         $previous_key = null;
         if ($DB instanceof DBmysql && $DB->connected) {
             if ($this->keyExists()) {
@@ -196,12 +205,14 @@ class GLPIKey
         $written_bytes = file_put_contents($this->keyfile, $key);
         if ($written_bytes !== strlen($key)) {
             trigger_error('Unable to write security key file contents.', E_USER_WARNING);
+
             return false;
         }
 
         if ($DB instanceof DBmysql && $DB->connected) {
             if (!$this->migrateFieldsInDb($previous_key) || !$this->migrateConfigsInDb($previous_key)) {
                 trigger_error('Error during encrypted data update in database.', E_USER_WARNING);
+
                 return false;
             }
         }
@@ -243,7 +254,7 @@ class GLPIKey
 
         if (isset($PLUGIN_HOOKS[Hooks::SECURED_CONFIGS])) {
             foreach ($PLUGIN_HOOKS[Hooks::SECURED_CONFIGS] as $plugin => $plugconfigs) {
-                $configs['plugin:' . $plugin] = $plugconfigs;
+                $configs['plugin:'.$plugin] = $plugconfigs;
             }
         }
 
@@ -253,8 +264,8 @@ class GLPIKey
     /**
      * Check if configuration is secured.
      *
-     * @param string $context
-     * @param string $name
+     * @param  string  $context
+     * @param  string  $name
      *
      * @return bool
      */
@@ -264,13 +275,13 @@ class GLPIKey
         $secured_configs = $this->getConfigs();
 
         return array_key_exists($context, $secured_configs)
-         && in_array($name, $secured_configs[$context]);
+            && in_array($name, $secured_configs[$context]);
     }
 
     /**
      * Migrate fields in database
      *
-     * @param string|null   $sodium_key Previous key. If null, legacy key will be used.
+     * @param  string|null  $sodium_key  Previous key. If null, legacy key will be used.
      *
      * @return bool
      */
@@ -286,12 +297,12 @@ class GLPIKey
 
             $iterator = $DB->request([
                 'SELECT' => ['id', $column],
-                'FROM'   => $table,
+                'FROM' => $table,
                 ['NOT' => [$column => null]],
             ]);
 
             foreach ($iterator as $row) {
-                 $value = (string)$row[$column];
+                $value = (string) $row[$column];
                 if ($sodium_key !== null) {
                     $pass = $this->encrypt($this->decrypt($value, $sodium_key));
                 } else {
@@ -299,12 +310,12 @@ class GLPIKey
                 }
                 $success = $DB->update(
                     $table,
-                    [$field  => $pass],
-                    ['id'    => $row['id']]
+                    [$field => $pass],
+                    ['id' => $row['id']]
                 );
 
                 if (!$success) {
-                     break;
+                    break;
                 }
             }
         }
@@ -315,7 +326,7 @@ class GLPIKey
     /**
      * Migrate configurations in database
      *
-     * @param string|null   $sodium_key Previous key. If null, legacy key will be used.
+     * @param  string|null  $sodium_key  Previous key. If null, legacy key will be used.
      *
      * @return bool
      */
@@ -328,16 +339,16 @@ class GLPIKey
 
         foreach ($this->getConfigs() as $context => $names) {
             $iterator = $DB->request([
-                'FROM'   => Config::getTable(),
-                'WHERE'  => [
-                    'context'   => $context,
-                    'name'      => $names,
+                'FROM' => Config::getTable(),
+                'WHERE' => [
+                    'context' => $context,
+                    'name' => $names,
                     ['NOT' => ['value' => null]],
-                ]
+                ],
             ]);
 
             foreach ($iterator as $row) {
-                 $value = (string)$row['value'];
+                $value = (string) $row['value'];
                 if ($sodium_key !== null) {
                     $pass = $this->encrypt($this->decrypt($value, $sodium_key));
                 } else {
@@ -346,11 +357,11 @@ class GLPIKey
                 $success = $DB->update(
                     Config::getTable(),
                     ['value' => $pass],
-                    ['id'    => $row['id']]
+                    ['id' => $row['id']]
                 );
 
                 if (!$success) {
-                     break;
+                    break;
                 }
             }
         }
@@ -361,8 +372,8 @@ class GLPIKey
     /**
      * Encrypt a string.
      *
-     * @param string        $string  String to encrypt.
-     * @param string|null   $key     Key to use, fallback to default key if null.
+     * @param  string  $string  String to encrypt.
+     * @param  string|null  $key  Key to use, fallback to default key if null.
      *
      * @return string
      */
@@ -373,8 +384,8 @@ class GLPIKey
         }
 
         if ($key === null) {
-           // Cannot encrypt string as key reading fails, returns a empty value
-           // to ensure sensitive data is not propagated unencrypted.
+            // Cannot encrypt string as key reading fails, returns a empty value
+            // to ensure sensitive data is not propagated unencrypted.
             return '';
         }
 
@@ -385,21 +396,23 @@ class GLPIKey
             $nonce,
             $key
         );
-        return base64_encode($nonce . $encrypted);
+
+        return base64_encode($nonce.$encrypted);
     }
 
     /**
      * Descrypt a string.
      *
-     * @param string|null   $string  String to decrypt.
-     * @param string|null   $key     Key to use, fallback to default key if null.
+     * @param  string|null  $string  String to decrypt.
+     * @param  string|null  $key  Key to use, fallback to default key if null.
      *
      * @return string|null
+     * @throws SodiumException
      */
     public function decrypt(?string $string, $key = null): ?string
     {
         if (empty($string)) {
-           // Avoid sodium exception for blank content. Just return the null/empty value.
+            // Avoid sodium exception for blank content. Just return the null/empty value.
             return $string;
         }
 
@@ -408,7 +421,7 @@ class GLPIKey
         }
 
         if ($key === null) {
-           // Cannot decrypt string as key reading fails, returns encrypted value.
+            // Cannot decrypt string as key reading fails, returns encrypted value.
             return $string;
         }
 
@@ -420,6 +433,7 @@ class GLPIKey
                 'Unable to extract nonce from string. It may not have been crypted with sodium functions.',
                 E_USER_WARNING
             );
+
             return '';
         }
 
@@ -436,8 +450,10 @@ class GLPIKey
                 'Unable to decrypt string. It may have been crypted with another key.',
                 E_USER_WARNING
             );
+
             return '';
         }
+
         return $plaintext;
     }
 
@@ -445,8 +461,8 @@ class GLPIKey
      * Decrypt a string using a legacy key.
      * If key is not provided, the default legacy key will be used.
      *
-     * @param string $string
-     * @param string|null $key
+     * @param  string  $string
+     * @param  string|null  $key
      *
      * @return string
      */
@@ -458,7 +474,7 @@ class GLPIKey
         }
 
         if ($key === null) {
-           // Cannot decrypt string as key reading fails, returns encrypted value.
+            // Cannot decrypt string as key reading fails, returns encrypted value.
             return $string;
         }
 
@@ -466,9 +482,9 @@ class GLPIKey
         $string = base64_decode($string);
 
         for ($i = 0; $i < strlen($string); $i++) {
-            $char    = substr($string, $i, 1);
+            $char = substr($string, $i, 1);
             $keychar = substr($key, ($i % strlen($key)) - 1, 1);
-            $char    = chr(ord($char) - ord($keychar));
+            $char = chr(ord($char) - ord($keychar));
             $result .= $char;
         }
 

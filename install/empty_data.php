@@ -39,33 +39,32 @@ use Glpi\Toolbox\Sanitizer;
 
 // Use anonymous class so we can have constants that define special values without polluting the global table
 // and adding unnecessary variables to IDE autocomplete data that may result in errors
-$empty_data_builder = new class
-{
+$empty_data_builder = new class {
     /** @var int Self-service profile ID */
     const PROFILE_SELF_SERVICE = 1;
     /** @var int Observer profile ID */
-    const PROFILE_OBSERVER     = 2;
+    const PROFILE_OBSERVER = 2;
     /** @var int Admin profile ID */
-    const PROFILE_ADMIN        = 3;
+    const PROFILE_ADMIN = 3;
     /** @var int Super-admin profile ID */
-    const PROFILE_SUPER_ADMIN  = 4;
+    const PROFILE_SUPER_ADMIN = 4;
     /** @var int Hotliner profile ID */
-    const PROFILE_HOTLINER     = 5;
+    const PROFILE_HOTLINER = 5;
     /** @var int Technician profile ID */
-    const PROFILE_TECHNICIAN   = 6;
+    const PROFILE_TECHNICIAN = 6;
     /** @var int Supervisor profile ID */
-    const PROFILE_SUPERVISOR   = 7;
+    const PROFILE_SUPERVISOR = 7;
     /** @var int Read-only profile ID */
-    const PROFILE_READ_ONLY    = 8;
+    const PROFILE_READ_ONLY = 8;
 
-    const USER_GLPI            = 2;
-    const USER_POST_ONLY       = 3;
-    const USER_TECH            = 4;
-    const USER_NORMAL          = 5;
-    const USER_SYSTEM          = 6;
+    const USER_GLPI = 2;
+    const USER_POST_ONLY = 3;
+    const USER_TECH = 4;
+    const USER_NORMAL = 5;
+    const USER_SYSTEM = 6;
 
     /** @var int Value indicating no rights */
-    const RIGHT_NONE           = 0;
+    const RIGHT_NONE = 0;
 
     public function getEmptyData(): array
     {
@@ -347,7 +346,8 @@ $empty_data_builder = new class
             'default_dashboard_mini_ticket' => 'mini_tickets',
             Impact::CONF_ENABLED => exportArrayToDB(Impact::getDefaultItemtypes()),
             // Default size corresponds to the 'upload_max_filesize' directive in Mio (rounded down) or 1 Mio if 'upload_max_filesize' is too low.
-            'document_max_size' => max(1, floor(Toolbox::return_bytes_from_ini_vars(ini_get('upload_max_filesize')) / 1024 / 1024)),
+            'document_max_size' => max(1,
+                floor(Toolbox::return_bytes_from_ini_vars(ini_get('upload_max_filesize')) / 1024 / 1024)),
             'planning_work_days' => exportArrayToDB([0, 1, 2, 3, 4, 5, 6]),
             'system_user' => self::USER_SYSTEM,
             'support_legacy_data' => 0, // New installation should not support legacy data
@@ -787,7 +787,7 @@ $empty_data_builder = new class
             ],
         ];
 
-        $dashboards_data = include_once __DIR__ . "/migrations/update_9.4.x_to_9.5.0/dashboards.php";
+        $dashboards_data = include_once __DIR__."/migrations/update_9.4.x_to_9.5.0/dashboards.php";
         $tables['glpi_dashboards_dashboards'] = [];
         $tables['glpi_dashboards_items'] = [];
         $i = $j = 1;
@@ -795,7 +795,7 @@ $empty_data_builder = new class
             $items = $default_dashboard['_items'];
             unset($default_dashboard['_items']);
             $tables['glpi_dashboards_dashboards'][] = array_merge([
-                'id' => $i
+                'id' => $i,
             ], $default_dashboard);
 
             foreach ($items as $item) {
@@ -1793,7 +1793,7 @@ $empty_data_builder = new class
                 'itemtype' => 'Plugin',
                 'num' => '8',
                 'rank' => '7',
-            ]
+            ],
         ];
 
         $ADDTODISPLAYPREF['Cluster'] = [31, 19];
@@ -2244,6 +2244,7 @@ $empty_data_builder = new class
                 'display_users_initials' => 1,
                 'contracts_strategy_default' => 0,
                 'transfers_strategy' => 0,
+                '2fa_enforcement_strategy' => 0, // Not enforced at entity level (optional)
             ],
         ];
 
@@ -4907,7 +4908,7 @@ style="color: #8b8c8f; font-weight: bold; text-decoration: underline;"&gt;
 &lt;ul&gt;##FOREACHplugins##
 &lt;li&gt;##plugin.name## :##plugin.old_version## -&gt; ##plugin.version##&lt;/li&gt;
 ##ENDFOREACHplugins##&lt;/ul&gt;
-&lt;p&gt;##lang.marketplace.url## : &lt;a title="##lang.marketplace.url##" href="##marketplace.url##" target="_blank" rel="noopener"&gt;##marketplace.url##&lt;/a&gt;&lt;/p&gt;'
+&lt;p&gt;##lang.marketplace.url## : &lt;a title="##lang.marketplace.url##" href="##marketplace.url##" target="_blank" rel="noopener"&gt;##marketplace.url##&lt;/a&gt;&lt;/p&gt;',
             ],
         ];
 
@@ -7823,7 +7824,7 @@ style="color: #8b8c8f; font-weight: bold; text-decoration: underline;"&gt;
                 'profiles_id' => self::PROFILE_READ_ONLY,
                 'name' => 'locked_field',
                 'rights' => self::RIGHT_NONE,
-            ],            [
+            ], [
                 'profiles_id' => self::PROFILE_SELF_SERVICE,
                 'name' => 'snmpcredential',
                 'rights' => self::RIGHT_NONE,
@@ -8458,8 +8459,8 @@ style="color: #8b8c8f; font-weight: bold; text-decoration: underline;"&gt;
         $tables['glpi_agenttypes'] = [
             [
                 'id' => 1,
-                'name' => 'Core'
-            ]
+                'name' => 'Core',
+            ],
         ];
 
         $tables[SNMPCredential::getTable()] = [
@@ -8467,14 +8468,14 @@ style="color: #8b8c8f; font-weight: bold; text-decoration: underline;"&gt;
                 'id' => 1,
                 'name' => 'Public community v1',
                 'snmpversion' => 1,
-                'community' => 'public'
+                'community' => 'public',
             ],
             [
                 'id' => 2,
                 'name' => 'Public community v2c',
                 'snmpversion' => 2,
-                'community' => 'public'
-            ]
+                'community' => 'public',
+            ],
         ];
 
         return $tables;
